@@ -27,7 +27,26 @@ CreateConVar( "cl_playercolor", "0.24 0.34 0.41", { FCVAR_ARCHIVE, FCVAR_USERINF
 CreateConVar( "cl_weaponcolor", "0.30 1.80 2.10", { FCVAR_ARCHIVE, FCVAR_USERINFO, FCVAR_DONTRECORD }, "The value is a Vector - so between 0-1 - not between 0-255" )
 CreateConVar( "cl_playerskin", "0", { FCVAR_ARCHIVE, FCVAR_USERINFO, FCVAR_DONTRECORD }, "The skin to use, if the model has any" )
 CreateConVar( "cl_playerbodygroups", "0", { FCVAR_ARCHIVE, FCVAR_USERINFO, FCVAR_DONTRECORD }, "The bodygroups to use, if the model has any" )
+CreateConVar( "nz_chose_playermodel", "0", { FCVAR_ARCHIVE, FCVAR_USERINFO }, "1 after a model is clicked in the nZombies player model editor" )
 
+nzServerPlayerModels = nzServerPlayerModels or nil
+
+net.Receive( "nz_server_playermodels", function()
+	local count = net.ReadUInt( 16 )
+	local names = {}
+	for i = 1, count do
+		names[ net.ReadString() ] = true
+	end
+	nzServerPlayerModels = names
+	if nzPlayers.FillOpenPlayerModelEditor then
+		nzPlayers:FillOpenPlayerModelEditor()
+	end
+end )
+
+function nzPlayers:RequestServerPlayerModels()
+	net.Start( "nz_server_playermodels_request" )
+	net.SendToServer()
+end
 
 function nzPlayers:PlayerModelEditor()
 	if GetConVar("sv_playermodel_selector_force") then	
@@ -54,20 +73,14 @@ function nzPlayers:PlayerModelEditor()
 		sheet:SetSize( 430, 0 )
 
 		local PanelSelect = sheet:Add( "DPanelSelect" )
-
-		for name, model in SortedPairs( player_manager.AllValidModels() ) do
-
-			local icon = vgui.Create( "SpawnIcon" )
-			icon:SetModel( model )
-			icon:SetSize( 64, 64 )
-			icon:SetTooltip( name )
-			icon.playermodel = name
-
-			PanelSelect:AddPanel( icon, { cl_playermodel = name } )
-
-		end
+		local choseFromClick = false
 
 		sheet:AddSheet( "Model", PanelSelect, "icon16/user.png" )
+
+		local loading = vgui.Create( "DLabel", PanelSelect:GetCanvas() )
+		loading:SetText( "Loading server models..." )
+		loading:Dock( TOP )
+		loading:SizeToContents()
 
 		local controls = window:Add( "DPanel" )
 		controls:DockPadding( 8, 8, 8, 8 )
@@ -237,6 +250,10 @@ function nzPlayers:PlayerModelEditor()
 
 		function PanelSelect:OnActivePanelChanged( old, new )
 
+			if ( !choseFromClick ) then return end
+
+			RunConsoleCommand( "nz_chose_playermodel", "1" )
+
 			if ( old != new ) then -- Only reset if we changed the model
 				RunConsoleCommand( "cl_playerbodygroups", "0" )
 				RunConsoleCommand( "cl_playerskin", "0" )
@@ -244,6 +261,61 @@ function nzPlayers:PlayerModelEditor()
 
 			timer.Simple( 0.1, function() UpdateFromConvars() end )
 
+		end
+
+		local function FillModelList()
+			if ( !IsValid( PanelSelect ) or !nzServerPlayerModels ) then return end
+
+			local savedModel = GetConVarString( "cl_playermodel" )
+			PanelSelect:Clear( true )
+			PanelSelect.SelectedPanel = nil
+
+			for name, model in SortedPairs( player_manager.AllValidModels() ) do
+				if ( !nzServerPlayerModels[ name ] ) then continue end
+
+				local icon = vgui.Create( "SpawnIcon" )
+				icon:SetModel( model )
+				icon:SetSize( 64, 64 )
+				icon:SetTooltip( name )
+				icon.playermodel = name
+
+				PanelSelect:AddPanel( icon, { cl_playermodel = name } )
+				icon.DoClick = function()
+					choseFromClick = true
+					PanelSelect:SelectPanel( icon )
+					choseFromClick = false
+				end
+			end
+
+			-- AddPanel selects a matching icon and would write cl_playermodel. Keep the saved name.
+			RunConsoleCommand( "cl_playermodel", savedModel )
+			if ( IsValid( loading ) ) then loading:Remove() end
+			UpdateFromConvars()
+		end
+
+		function nzPlayers:FillOpenPlayerModelEditor()
+			if ( !IsValid( window ) ) then return end
+			FillModelList()
+		end
+
+		nzPlayers:RequestServerPlayerModels()
+		if ( nzServerPlayerModels ) then
+			FillModelList()
+		else
+			local waitId = "nz_playermodel_list_wait"
+			local tries = 0
+			timer.Create( waitId, 0.25, 40, function()
+				if ( !IsValid( window ) ) then timer.Remove( waitId ) return end
+				tries = tries + 1
+				if ( !nzServerPlayerModels ) then
+					if ( tries % 8 == 0 ) then
+						nzPlayers:RequestServerPlayerModels()
+					end
+					return
+				end
+				FillModelList()
+				timer.Remove( waitId )
+			end )
 		end
 
 		-- Hold to rotate
