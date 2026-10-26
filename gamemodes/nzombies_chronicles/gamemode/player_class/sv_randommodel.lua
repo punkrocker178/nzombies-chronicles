@@ -58,6 +58,62 @@ hook.Add("OnRoundInit", "NZRandomizePlayerModels", function(round)
     AddAndShuffle()
 end)
 
+util.AddNetworkString("nz_server_playermodels")
+util.AddNetworkString("nz_server_playermodels_request")
+
+local function SendServerPlayerModels(ply)
+    if not IsValid(ply) then return end
+
+    local names = {}
+    for name in pairs(player_manager.AllValidModels() or {}) do
+        names[#names + 1] = name
+    end
+
+    net.Start("nz_server_playermodels")
+    net.WriteUInt(#names, 16)
+    for _, name in ipairs(names) do
+        net.WriteString(name)
+    end
+    net.Send(ply)
+end
+
+hook.Add("PlayerFullyInitialized", "NZSendServerPlayerModels", function(ply)
+    SendServerPlayerModels(ply)
+end)
+
+net.Receive("nz_server_playermodels_request", function(_, ply)
+    SendServerPlayerModels(ply)
+end)
+
+local function ApplyChosenPlayerModel(ply)
+    local name = ply:GetInfo("cl_playermodel")
+    local models = player_manager.AllValidModels()
+    local path = istable(models) and models[name] or nil
+    if not isstring(path) then return end
+
+    timer.Simple(0, function()
+        if not IsValid(ply) then return end
+
+        ply:SetModel(path)
+
+        local skin = ply:GetInfoNum("cl_playerskin", 0)
+        ply:SetSkin(skin)
+
+        local groups = ply:GetInfo("cl_playerbodygroups")
+        if groups == nil then groups = "" end
+        groups = string.Explode(" ", groups)
+        for k = 0, ply:GetNumBodyGroups() - 1 do
+            ply:SetBodygroup(k, tonumber(groups[k + 1]) or 0)
+        end
+
+        ply:SetupHands()
+
+        if isfunction(TFAVOX_Init) then
+            TFAVOX_Init(ply, true, true)
+        end
+    end)
+end
+
 local function GetBodygroupID(ent, bodyname) -- Retrieves a bodygroup's ID from a bodygroup name
     local groupID = -99
 
@@ -74,6 +130,11 @@ local function GetBodygroupID(ent, bodyname) -- Retrieves a bodygroup's ID from 
 end
 
 hook.Add("PlayerSetModel", "NZAssignPlayerModels", function(ply)
+    if ply:GetInfoNum("nz_chose_playermodel", 0) == 1 then
+        ApplyChosenPlayerModel(ply)
+        return
+    end
+
     if (LevelData and LevelData["Perks"] and LevelData["Perks"]["Model Choice"] and LevelData["Perks"]["Model Choice"]["Level"] and ply:HighEnoughLevel(LevelData["Perks"]["Model Choice"]["Level"])) then 
         if (ply:GetInfoNum("NZC_OverrideModel", 1) == 0) then
             ply:SendLua("net.Start('lf_playermodel_update') net.SendToServer()")
@@ -92,9 +153,9 @@ hook.Add("PlayerSetModel", "NZAssignPlayerModels", function(ply)
         if (!isstring(mdl)) then ServerLog("[NZ] The playermodel retrieved by the shuffled ModelPack is NOT a string!") return end
 
         timer.Simple(0, function()
+            if not IsValid(ply) then return end
             ply:SetModel(mdl)
-            ply:ConCommand("cl_playermodel " .. mdl)
-            
+
             if (isfunction(TFAVOX_Init)) then -- Seems this doesn't wanna work in Singleplayer..
                 TFAVOX_Init(ply, true, true)
             end

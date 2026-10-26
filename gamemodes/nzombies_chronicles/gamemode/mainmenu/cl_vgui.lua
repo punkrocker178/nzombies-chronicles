@@ -139,6 +139,7 @@ function MenuToolBar:Init()
 	end
 
 	self:AddEntry( "PLAY ONLINE", "medium", function() gui.OpenURL( "https://steamcommunity.com/sharedfiles/filedetails/?id=3719586784" ) end )
+	self:AddEntry( "PLAYER MODEL", "medium", function() nzPlayers:PlayerModelEditor() end )
 	
 	self:AddEntry( "Press F1 to toggle this menu", "small", function() RunConsoleCommand("nz_settings") end )
 	
@@ -211,7 +212,7 @@ function MenuToolBar:AddEntry( lbl, fontSize, cmd, args )
 	else
 		entry:SetFont( "pier_small" )
 	end
-	local nextPos = 300
+	local nextPos = 150
 	for _, v in pairs( self.Entries ) do
 		nextPos = nextPos + v:GetWide() + 30
 	end

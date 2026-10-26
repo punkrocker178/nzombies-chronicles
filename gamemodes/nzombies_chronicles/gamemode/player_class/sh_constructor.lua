@@ -49,9 +49,6 @@ end )
 hook.Add("PlayerSpawn", "SetupHands", function(ply)
 	if GetConVar("sv_playermodel_selector_force") then return end -- Enhanced Playermodel exists, let it do its thing.
 
-	local mdl = ply:GetInfo( "cl_playermodel" )
-	ply:SetModel(mdl)
-	
 	local col = ply:GetInfo( "cl_playercolor" )
 	ply:SetPlayerColor( Vector( col ) )
 
