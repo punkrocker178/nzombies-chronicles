@@ -212,7 +212,7 @@ function MenuToolBar:AddEntry( lbl, fontSize, cmd, args )
 	else
 		entry:SetFont( "pier_small" )
 	end
-	local nextPos = 300
+	local nextPos = 150
 	for _, v in pairs( self.Entries ) do
 		nextPos = nextPos + v:GetWide() + 30
 	end
