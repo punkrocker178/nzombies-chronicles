@@ -4,16 +4,16 @@ overview: Add a placeable trash-can recycler to the multitool. Using it destroys
 todos:
   - id: entity
     content: Place frozen prop_physics trash can + shared recycle / PlayerUse logic
-    status: pending
+    status: completed
   - id: mapping
     content: Add nzMapping:Recycler plus RecyclerSpawns save/load
-    status: pending
+    status: completed
   - id: tool
     content: "Add recycler multitool mode: LMB place, RMB remove"
-    status: pending
+    status: completed
   - id: prompt
     content: Add look-at prompt in cl_target.lua
-    status: pending
+    status: completed
 isProject: false
 ---
 
