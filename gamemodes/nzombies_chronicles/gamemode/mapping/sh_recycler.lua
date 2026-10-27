@@ -53,17 +53,15 @@ function nzRecycler.LowestWallPrice(class)
 end
 
 if SERVER then
-	hook.Add("PlayerUse", "nzRecyclerUse", function(activator, ent)
-		if !nzRecycler.Is(ent) then return end
+	function nzRecycler.TryUse(ply, ent)
+		if !ply:KeyPressed(IN_USE) then return false end
 
-		if !activator:KeyPressed(IN_USE) then return false end
+		if isnumber(ply.nextUseTime) and CurTime() < ply.nextUseTime then return false end
+		ply.nextUseTime = CurTime() + 1
 
-		if isnumber(activator.nextUseTime) and CurTime() < activator.nextUseTime then return false end
-		activator.nextUseTime = CurTime() + 1
+		if !ply:GetNotDowned() then return false end
 
-		if !activator:GetNotDowned() then return false end
-
-		local wep = activator:GetActiveWeapon()
+		local wep = ply:GetActiveWeapon()
 		if !IsValid(wep) then return false end
 
 		if wep:IsSpecial() then return false end
@@ -73,12 +71,12 @@ if SERVER then
 		local refund = price and math.floor(price / 2)
 
 		if !refund or refund < 1 then
-			activator:ChatPrint("This weapon cannot be recycled.")
+			ply:ChatPrint("This weapon cannot be recycled.")
 			return false
 		end
 
 		wep:Remove()
-		activator:GivePoints(refund, true)
+		ply:GivePoints(refund, true)
 		return false
-	end)
+	end
 end

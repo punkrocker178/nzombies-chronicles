@@ -424,7 +424,7 @@ function nzMapping:Recycler(pos, ang, ply)
 		undo.Create("Recycler")
 			undo.SetPlayer(ply)
 			undo.AddEntity(ent)
-		undo.Finish("Effect (" .. tostring(model) .. ")")
+		undo.Finish("Weapon Recycler")
 	end
 
 	return ent

@@ -518,19 +518,21 @@ nzMapping:AddSaveModule("PerkMachineSpawns", {
 	cleanents = {"perk_machine", "wunderfizz_machine", "wunderfizz_windup"},
 })
 
-nzMapping:AddSaveModule("RecyclerSpawns", {
-	savefunc = function()
-		local recycler_spawns = {}
-		for _, v in pairs(ents.FindByClass("prop_physics")) do
-			if nzRecycler.Is(v) then
-				table.insert(recycler_spawns, {
-					pos = v:GetPos(),
-					angle = v:GetAngles(),
-				})
-			end
+local function scanRecyclerSpawns()
+	local recycler_spawns = {}
+	for _, v in pairs(ents.FindByClass("prop_physics")) do
+		if nzRecycler.Is(v) then
+			table.insert(recycler_spawns, {
+				pos = v:GetPos(),
+				angle = v:GetAngles(),
+			})
 		end
-		return recycler_spawns
-	end,
+	end
+	return recycler_spawns
+end
+
+nzMapping:AddSaveModule("RecyclerSpawns", {
+	savefunc = scanRecyclerSpawns,
 	loadfunc = function(data)
 		for _, v in pairs(data) do
 			if istable(v) then
@@ -545,22 +547,13 @@ nzMapping:AddSaveModule("RecyclerSpawns", {
 			end
 		end
 	end,
-	prerestorefunc = function()
-		local recycler_spawns = {}
-		for _, v in pairs(ents.FindByClass("prop_physics")) do
-			if nzRecycler.Is(v) then
-				table.insert(recycler_spawns, {
-					pos = v:GetPos(),
-					angle = v:GetAngles(),
-				})
-			end
-		end
-		return recycler_spawns
-	end,
+	prerestorefunc = scanRecyclerSpawns,
 	postrestorefunc = function(data)
 		if istable(data) then
 			for _, v in pairs(data) do
-				nzMapping:Recycler(v.pos, v.angle)
+				if istable(v) then
+					nzMapping:Recycler(v.pos, v.angle)
+				end
 			end
 		end
 	end,

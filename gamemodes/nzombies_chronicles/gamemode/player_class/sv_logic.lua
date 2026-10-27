@@ -53,5 +53,9 @@ end)
 
 -- Block (NORMAL) use
 hook.Add("PlayerUse", "NZNoUseWithSpecialWeps", function(ply, ent)
+    if nzRecycler and nzRecycler.Is(ent) then
+        return nzRecycler.TryUse(ply, ent)
+    end
+
     return ply:CanUse()
 end)
