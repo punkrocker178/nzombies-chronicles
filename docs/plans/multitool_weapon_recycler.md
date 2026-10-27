@@ -3,7 +3,7 @@ name: Multitool weapon recycler
 overview: Add a placeable trash-can recycler to the multitool. Using it destroys the held weapon and refunds half the lowest wall-buy price for that gun’s base class. Guns with no wall buy cannot be recycled.
 todos:
   - id: entity
-    content: Add nz_recycler entity (trash can model, frozen, Use refund logic)
+    content: Place frozen prop_physics trash can + shared recycle / PlayerUse logic
     status: pending
   - id: mapping
     content: Add nzMapping:Recycler plus RecyclerSpawns save/load
@@ -27,17 +27,18 @@ Same multitool flow as zombie spawns (LMB place, RMB remove, saved with the map 
 
 - New tool `recycler` in [`sh_tools_recycler.lua`](garrysmod/addons/nzombies-chronicles/gamemodes/nzombies_chronicles/gamemode/tools/sh_tools_recycler.lua), registered with `nzTools:CreateTool` (auto-loaded via the `sh_` prefix).
 - LMB calls `nzMapping:Recycler(tr.HitPos, Angle(0, (ply:GetPos() - tr.HitPos):Angle()[2], 0), ply)` — same yaw-toward-placer as [`sh_tools_perk.lua`](garrysmod/addons/nzombies-chronicles/gamemodes/nzombies_chronicles/gamemode/tools/sh_tools_perk.lua).
-- RMB removes `nz_recycler`. No tool options (nothing to configure per can).
-- [`sv_mapping.lua`](garrysmod/addons/nzombies-chronicles/gamemodes/nzombies_chronicles/gamemode/mapping/sv_mapping.lua): spawn `nz_recycler`, freeze physics, add an undo entry (same pattern as `nzMapping:PerkMachine`).
+- RMB removes a placed recycler (`prop_physics` marked as a weapon recycler). No tool options (nothing to configure per can).
+- [`sv_mapping.lua`](garrysmod/addons/nzombies-chronicles/gamemodes/nzombies_chronicles/gamemode/mapping/sv_mapping.lua): spawn GMod’s default **`prop_physics`** with model `models/props_junk/TrashBin01a.mdl` (same as Sandbox construction spawnlist), freeze physics, mark the ent as a recycler (e.g. networked flag), `SetUseType(SIMPLE_USE)`, undo entry (same pattern as `nzMapping:PerkMachine`).
 - [`sv_savemodules.lua`](garrysmod/addons/nzombies-chronicles/gamemodes/nzombies_chronicles/gamemode/mapping/sv_savemodules.lua): module `RecyclerSpawns` stores `{ pos, angle }` and reloads through `nzMapping:Recycler`. Old configs simply have no key, so no config version bump.
 
-## Entity
+## World prop (no custom SENT)
 
-New entity [`entities/entities/nz_recycler/shared.lua`](garrysmod/addons/nzombies-chronicles/gamemodes/nzombies_chronicles/entities/entities/nz_recycler/shared.lua):
+Use the stock **`prop_physics`** entity — not a new `nz_recycler` scripted class. That matches what Sandbox spawns for the trash-bin model and keeps the can a normal frozen prop.
 
-- Model `models/props_junk/TrashBin01a.mdl` (HL2 trash can already listed in the prop browser).
-- Frozen, solid, visible in gameplay (not creative-only, unlike zombie spawn markers).
-- `ENT:Use` with the wall-buy 1 second `activator.nextUseTime` cooldown.
+- Model: `models/props_junk/TrashBin01a.mdl`.
+- After spawn: freeze physics, solid, visible in gameplay (not creative-only, unlike zombie spawn markers).
+- Mark placed cans so multitool remove, save/load, prompts, and use handling only target mapper-placed recyclers (not every trash prop on the map).
+- Recycle logic lives in gamemode code (e.g. shared helpers + `PlayerUse` hook), with the same wall-buy 1 second `activator.nextUseTime` cooldown as wall buys — `prop_physics` has no `ENT:Use` script.
 
 ## Recycle rules
 
@@ -67,4 +68,4 @@ flowchart TD
 
 ## Look prompt
 
-Add an `nz_recycler` entry in [`cl_target.lua`](garrysmod/addons/nzombies-chronicles/gamemodes/nzombies_chronicles/gamemode/display/cl_target.lua) `nzTarget.TraceEnts`, same style as wall buys. Client scans wall buys for the active weapon’s base class and shows either “Press USE to recycle [name] for [points]” or “Cannot recycle this weapon.”
+In [`cl_target.lua`](gamemodes/nzombies_chronicles/gamemode/display/cl_target.lua) `nzTarget.TraceEnts`, handle marked `prop_physics` recyclers the same style as wall buys. Client scans wall buys for the active weapon’s base class and shows either “Press USE to recycle [name] for [points]” or “Cannot recycle this weapon.”
