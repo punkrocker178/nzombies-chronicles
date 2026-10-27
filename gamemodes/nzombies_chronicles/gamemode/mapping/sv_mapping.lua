@@ -403,6 +403,33 @@ function nzMapping:PerkMachine(pos, ang, id, ply)
 	end
 end
 
+function nzMapping:Recycler(pos, ang, ply)
+	local ent = ents.Create("prop_physics")
+	ent:SetModel("models/props_junk/TrashBin01a.mdl")
+	ent:SetPos(pos)
+	ent:SetAngles(ang)
+	ent:Spawn()
+	ent:Activate()
+	ent:PhysicsInit(SOLID_VPHYSICS)
+	ent:SetUseType(SIMPLE_USE)
+
+	local phys = ent:GetPhysicsObject()
+	if phys:IsValid() then
+		phys:EnableMotion(false)
+	end
+
+	ent:SetNWBool("NZRecycler", true)
+
+	if ply then
+		undo.Create("Recycler")
+			undo.SetPlayer(ply)
+			undo.AddEntity(ent)
+		undo.Finish("Effect (" .. tostring(model) .. ")")
+	end
+
+	return ent
+end
+
 function nzMapping:BreakEntry(pos, ang, planks, jump, ply)
 	local planks = planks
 	if planks == nil then planks = true else planks = tobool(planks) end
