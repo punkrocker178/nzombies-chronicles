@@ -410,7 +410,6 @@ function nzMapping:Recycler(pos, ang, ply)
 	ent:SetAngles(ang)
 	ent:Spawn()
 	ent:Activate()
-	ent:PhysicsInit(SOLID_VPHYSICS)
 	ent:SetUseType(SIMPLE_USE)
 
 	local phys = ent:GetPhysicsObject()

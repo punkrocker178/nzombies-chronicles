@@ -53,9 +53,20 @@ function nzRecycler.LowestWallPrice(class)
 end
 
 if SERVER then
-	function nzRecycler.TryUse(ply, ent)
-		if !ply:KeyPressed(IN_USE) then return false end
+	util.AddNetworkString("nzRecyclerSwitch")
 
+	local function switchTo(ply, class)
+		if !IsValid(ply) or !isstring(class) or !ply:HasWeapon(class) then return end
+		ply:SetActiveWeapon(nil)
+		ply:SelectWeapon(class)
+		net.Start("nzRecyclerSwitch")
+			net.WriteString(class)
+		net.Send(ply)
+	end
+
+	function nzRecycler.TryUse(ply, ent)
+		-- PlayerUse runs on press and release, and KeyPressed is already
+		-- clear by then. The cooldown below ignores the second call.
 		if isnumber(ply.nextUseTime) and CurTime() < ply.nextUseTime then return false end
 		ply.nextUseTime = CurTime() + 1
 
@@ -75,8 +86,61 @@ if SERVER then
 			return false
 		end
 
+		local replacement
+		local knife
+		for _, held in ipairs(ply:GetWeapons()) do
+			if held != wep and IsValid(held) then
+				if !held:IsSpecial() then
+					replacement = held
+					break
+				elseif held.GetSpecialCategory and held:GetSpecialCategory() == "knife" then
+					knife = held
+				end
+			end
+		end
+
+		local switchClass
+		if IsValid(replacement) then
+			switchClass = replacement:GetClass()
+		end
+
 		wep:Remove()
+
+		if !switchClass then
+			local startClass = nzMapping.Settings.startwep
+			if !isstring(startClass) or !weapons.Get(startClass) then
+				startClass = "nz_robotnik_bo1_1911"
+			end
+			if weapons.Get(startClass) and !ply:HasWeapon(startClass) then
+				ply:Give(startClass)
+				switchClass = startClass
+			elseif IsValid(knife) then
+				switchClass = knife:GetClass()
+			end
+		end
+
+		-- SelectWeapon before Remove is discarded with the old gun. The
+		-- client only changes weapons through its own CreateMove switch.
+		timer.Simple(0, function()
+			switchTo(ply, switchClass)
+		end)
+
 		ply:GivePoints(refund, true)
 		return false
 	end
+else
+	net.Receive("nzRecyclerSwitch", function()
+		local class = net.ReadString()
+		local tries = 0
+		local function switch()
+			tries = tries + 1
+			local ply = LocalPlayer()
+			if IsValid(ply) and ply:HasWeapon(class) then
+				ply:SelectWeapon(class)
+				return
+			end
+			if tries < 5 then timer.Simple(0, switch) end
+		end
+		switch()
+	end)
 end
