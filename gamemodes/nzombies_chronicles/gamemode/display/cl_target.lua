@@ -265,6 +265,24 @@ nzTarget.TraceEnts = {
 
 		return text
 	end,
+	["prop_physics"] = function(ent)
+		if !nzRecycler.Is(ent) then return end
+
+		local wep = LocalPlayer():GetActiveWeapon()
+		local baseClass = IsValid(wep) and nzRecycler.BaseClass(wep)
+		local price = isstring(baseClass) and nzRecycler.LowestWallPrice(baseClass)
+		local refund = isnumber(price) and math.floor(price / 2)
+
+		if LocalPlayer():GetNotDowned() and IsValid(wep) and !wep:IsSpecial() and isnumber(refund) and refund >= 1 then
+			local name = wep.PrintName
+			if !isstring(name) or name == "" then
+				name = wep:GetClass()
+			end
+			return "Press " .. nzDisplay.GetKeyFromCommand("+use") .. " to recycle " .. name .. " for " .. refund .. " points."
+		end
+
+		return "Cannot recycle this weapon."
+	end,
 }
 
 nzTarget.GetTarget = function()

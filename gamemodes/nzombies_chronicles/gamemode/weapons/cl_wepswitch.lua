@@ -63,7 +63,9 @@ function GM:PlayerBindPress( ply, bind, pressed )
 		end
 		if !nzRound:InState(ROUND_CREATE) and (bind == "+menu" and pressed ) then slot = ply:GetLastWeaponSlot() or 1 end
 		if slot then
-			ply:SetLastWeaponSlot( ply:GetActiveWeapon():GetNWInt( "SwitchSlot", 1) )
+			if IsValid(activeWep) then
+				ply:SetLastWeaponSlot( activeWep:GetNWInt( "SwitchSlot", 1) )
+			end
 			if slot == 3 then
 				for k,v in pairs( ply:GetWeapons() ) do
 					if v:GetNWInt( "SwitchSlot" ) == slot then

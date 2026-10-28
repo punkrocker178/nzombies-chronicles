@@ -35,7 +35,12 @@ hook.Add("KeyPress", "PlayerUsedSomething", function(ply, key)
             endpos = ply:GetShootPos() + ply:GetAimVector() * 90,
             filter = function(ent)
                 if (ent != ply) then
-                    if (IsValid(ent) and !nothing[ent:GetClass()] and ent:GetClass() == "easter_egg" or isfunction(ent.GetPrice) and ent:GetClass() != "power_box") then
+                    if nzRecycler and nzRecycler.Is(ent) then
+                        if (!isnumber(ply.lastInvisUseTime) or isnumber(ply.lastInvisUseTime) and CurTime() > ply.lastInvisUseTime) then
+                            ply.lastInvisUseTime = CurTime() + 0.3
+                            nzRecycler.TryUse(ply, ent)
+                        end
+                    elseif (IsValid(ent) and !nothing[ent:GetClass()] and ent:GetClass() == "easter_egg" or isfunction(ent.GetPrice) and ent:GetClass() != "power_box") then
                         if (!isnumber(ply.lastInvisUseTime) or isnumber(ply.lastInvisUseTime) and CurTime() > ply.lastInvisUseTime) then
                             ply.lastInvisUseTime = CurTime() + 0.3
                             
@@ -53,5 +58,9 @@ end)
 
 -- Block (NORMAL) use
 hook.Add("PlayerUse", "NZNoUseWithSpecialWeps", function(ply, ent)
+    if nzRecycler and nzRecycler.Is(ent) then
+        return nzRecycler.TryUse(ply, ent)
+    end
+
     return ply:CanUse()
 end)
