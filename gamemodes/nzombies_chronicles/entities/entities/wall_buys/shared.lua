@@ -31,6 +31,10 @@ ENT.Instructions	= ""
 
 ENT.NZEntity = true
 
+function ENT:UpdateTransmitState()
+	return TRANSMIT_ALWAYS
+end
+
 function ENT:SetupDataTables()
 	self:NetworkVar( "String", 0, "WepClass" )
 	self:NetworkVar( "String", 1, "Price" )

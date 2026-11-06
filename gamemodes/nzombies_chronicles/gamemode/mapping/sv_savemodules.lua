@@ -518,6 +518,47 @@ nzMapping:AddSaveModule("PerkMachineSpawns", {
 	cleanents = {"perk_machine", "wunderfizz_machine", "wunderfizz_windup"},
 })
 
+local function scanRecyclerSpawns()
+	local recycler_spawns = {}
+	for _, v in pairs(ents.FindByClass("prop_physics")) do
+		if nzRecycler.Is(v) then
+			table.insert(recycler_spawns, {
+				pos = v:GetPos(),
+				angle = v:GetAngles(),
+			})
+		end
+	end
+	return recycler_spawns
+end
+
+nzMapping:AddSaveModule("RecyclerSpawns", {
+	savefunc = scanRecyclerSpawns,
+	loadfunc = function(data)
+		for _, v in pairs(data) do
+			if istable(v) then
+				nzMapping:Recycler(v.pos, v.angle)
+			end
+		end
+	end,
+	cleanfunc = function()
+		for _, v in pairs(ents.FindByClass("prop_physics")) do
+			if nzRecycler.Is(v) then
+				v:Remove()
+			end
+		end
+	end,
+	prerestorefunc = scanRecyclerSpawns,
+	postrestorefunc = function(data)
+		if istable(data) then
+			for _, v in pairs(data) do
+				if istable(v) then
+					nzMapping:Recycler(v.pos, v.angle)
+				end
+			end
+		end
+	end,
+})
+
 nzMapping:AddSaveModule("DoorSetup", {
 	savefunc = function()
 		local door_setup = {}
